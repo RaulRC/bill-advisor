@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.streamlit/secrets.toml
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+tests/fixtures/*.pdf
+tests/fixtures/*.json
+!tests/fixtures/.gitkeep
