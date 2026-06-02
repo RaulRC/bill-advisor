@@ -31,9 +31,23 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
 # CLI extraction + audit
 .venv/bin/python -m bill_advisor.audit path/to/factura.pdf
 
-# Web UI
+# Streamlit UI (debug / quick demos)
 .venv/bin/streamlit run app.py
+
+# FastAPI server (production UI backend — consumed by the Next.js frontend)
+.venv/bin/uvicorn api.main:app --reload --port 8000
 ```
+
+### API endpoints
+
+Once the FastAPI server is running on `http://localhost:8000`:
+
+| Method | Path            | Body                  | Returns                                      |
+|--------|-----------------|-----------------------|----------------------------------------------|
+| GET    | `/api/health`   | —                     | `{"status": "ok"}`                           |
+| POST   | `/api/analyze`  | `multipart/form-data` with `pdf` field | `{"factura": {...}, "findings": [...]}` |
+
+Auto-generated docs (Swagger UI) live at `http://localhost:8000/docs`.
 
 ## Architecture
 
@@ -62,7 +76,8 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
 - `bill_advisor/schemas.py` — Pydantic models for the extracted `Factura`. Includes a PVPC-specific `CostesPVPC` sub-block.
 - `bill_advisor/extraction.py` — Claude API call: PDF as `document` block + tool use forcing the `record_factura_extraida` schema. System prompt + tool schema are prompt-cached.
 - `bill_advisor/audit.py` — Pure-logic anomaly checks against a validated `Factura`. No LLM.
-- `app.py` — Streamlit UI tying the two together.
+- `api/main.py` — FastAPI HTTP layer wrapping extraction + audit. Designed to be consumed by the Next.js frontend (`web/`, scaffolded next).
+- `app.py` — Streamlit UI (kept for quick local testing / debugging).
 
 ## Design decisions
 
