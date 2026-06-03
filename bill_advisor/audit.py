@@ -7,11 +7,18 @@ explainer (Phase 2) to drive recommendations.
 Checks are deliberately conservative: false positives (flagging something
 that's actually fine) erode trust faster than false negatives. Heuristics
 that need hourly consumption data (Datadis) are deferred to Phase 2.
+
+Note: ``_check_pvpc_comparison`` is the only check that makes an HTTP
+call (to ESIOS). If the API is unreachable it silently returns ``[]`` so
+the pipeline never breaks.
 """
 
+import os
 from dataclasses import dataclass
 from typing import Literal
 
+from bill_advisor.comparator import compare_with_pvpc
+from bill_advisor.pvpc_client import fetch_pvpc_prices
 from bill_advisor.schemas import Factura
 
 Severity = Literal["info", "warning", "critical"]
@@ -248,6 +255,53 @@ def _check_excedentes_solares(f: Factura) -> list[Finding]:
     ]
 
 
+def _check_pvpc_comparison(f: Factura) -> list[Finding]:
+    """Compare energy cost against PVPC for non-PVPC bills."""
+    if f.contrato.modalidad == "PVPC":
+        return []
+    if not os.environ.get("ESIOS_TOKEN"):
+        return []
+
+    try:
+        prices = fetch_pvpc_prices(
+            f.periodo.fecha_inicio, f.periodo.fecha_fin
+        )
+    except Exception:
+        return []
+
+    result = compare_with_pvpc(f, prices)
+    if result is None:
+        return []
+
+    if result.pvpc_is_cheaper:
+        severity: Severity = (
+            "warning" if result.annual_savings_eur >= 100 else "info"
+        )
+        titulo = (
+            f"Ahorro estimado de ~€{result.annual_savings_eur:.0f}/año "
+            f"cambiándote a PVPC"
+        )
+    else:
+        severity = "info"
+        titulo = (
+            f"Con PVPC habrías pagado ~€{abs(result.savings_energy_eur):.2f} "
+            f"más este periodo"
+        )
+
+    return [
+        Finding(
+            severity=severity,
+            code="pvpc_comparison",
+            titulo=titulo,
+            detalle=result.detail,
+            ahorro_estimado_eur_mes=(
+                result.annual_savings_eur / 12
+                if result.pvpc_is_cheaper else None
+            ),
+        )
+    ]
+
+
 def _check_notas_extraccion(f: Factura) -> list[Finding]:
     return [
         Finding(
@@ -272,6 +326,7 @@ _CHECKS = [
     _check_otros_servicios,
     _check_conceptos_no_mapeados,
     _check_excedentes_solares,
+    _check_pvpc_comparison,
     _check_notas_extraccion,
 ]
 
