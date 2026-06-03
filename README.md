@@ -2,15 +2,15 @@
 
 AI-powered analysis of Spanish residential electricity bills (facturas eléctricas). Upload a factura PDF, get a structured breakdown of every charge, audit findings on anomalies, and savings opportunities — all in plain Spanish.
 
-**Status:** Phase 1 MVP. Extracts and audits a single PDF bill. Tariff comparison and Datadis integration are Phase 2.
+**Status:** Phase 1 MVP. Extracts, audits, and compares against the PVPC regulated tariff. Datadis hourly integration is Phase 2.
 
 ## What it does
 
 1. **Extracts** every line of a Spanish electricity bill into a typed schema using Claude vision — handles all major comercializadoras (Iberdrola, Endesa, Naturgy, Octopus, Repsol, COR/PVPC, etc.) without per-layout parsers.
-2. **Audits** the extracted data against a set of deterministic rules — math integrity, IVA validity, contador rental, PVPC component allocation, otros_servicios cancellation candidates, autoconsumo opportunities.
+2. **Audits** the extracted data against a set of deterministic rules — math integrity, IVA validity, contador rental, PVPC component allocation, otros_servicios cancellation candidates, autoconsumo opportunities, and PVPC tariff comparison.
 3. **Surfaces** findings ranked by severity (critical / warning / info) with quantified annual savings where applicable.
 
-Currently does **not** do tariff comparison or hourly-consumption analysis — see [Next Steps](docs/next-steps.md).
+PVPC tariff comparison is built in (see "PVPC Comparator" in [`AGENTS.md`](AGENTS.md)). Hourly-consumption analysis remains Phase 2 — see [Next Steps](docs/next-steps.md).
 
 ## Quick start
 
@@ -88,15 +88,20 @@ Key decisions are documented as ADRs in [`docs/adr/`](docs/adr/). Highlights:
 - [ADR-0004](docs/adr/0004-pvpc-sub-block-schema.md) — PVPC sub-block in the schema (the first extraction missed mercado mayorista entirely)
 - [ADR-0005](docs/adr/0005-pdf-first-datadis-later.md) — PDF-first input strategy
 - [ADR-0008](docs/adr/0008-prompt-caching.md) — Caching strategy (~90% input-cost saving on repeated extractions)
+- [ADR-0009](docs/adr/0009-direct-esios-over-mcp.md) — Direct ESIOS call (not MCP) for PVPC prices
+- [ADR-0010](docs/adr/0010-uniform-kwh-distribution.md) — Uniform kWh distribution in PVPC comparison
+- [ADR-0011](docs/adr/0011-deterministic-audit.md) — Deterministic audit (zero LLM)
+- [ADR-0012](docs/adr/0012-defer-tests-and-ci.md) — Defer tests and CI to post-MVP
 
 ## What's next
 
 See [`docs/next-steps.md`](docs/next-steps.md) for the prioritized roadmap. Headline items:
-1. Test against more real bills from multiple comercializadoras
+1. Test extraction + PVPC comparator against real bills from multiple comercializadoras
 2. Polish deferred items (prompt rule 10, annual savings framing, schema naming)
-3. RAG explainer corpus (plain-Spanish line-by-line explanations)
-4. Deploy to Streamlit Cloud
-5. Phase 2 — Datadis integration for hourly consumption + tariff comparator
+3. Write unit tests for `audit.py` and `comparator.py`
+4. RAG explainer corpus (plain-Spanish line-by-line explanations)
+5. Deploy to Streamlit Cloud with demo mode
+6. Phase 2 — Datadis integration for hourly consumption
 
 ## Disclaimers
 

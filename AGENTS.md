@@ -13,9 +13,9 @@ ruff check .                                          # lint
 
 ## Architecture
 
-- **schemas.py** — Pydantic domain model. 10 nested models, single source of truth.
+- **schemas.py** — Pydantic domain model. 11 models (root Factura + 10 sub-models), single source of truth.
 - **extraction.py** — Claude Opus 4.7 via `tool_use` forced (NOT `messages.parse` — schema too complex for grammar compiler). System prompt + tool schema are prompt-cached (`cache_control: ephemeral`). ~90% cost reduction on repeat calls.
-- **audit.py** — Pure logic (no LLM). 9+ deterministic checks. Each is a `_check_*` function returning `list[Finding]`. Sorted critical → warning → info. The PVPC comparison check (`_check_pvpc_comparison`) is the only one that makes HTTP calls.
+- **audit.py** — Pure logic (no LLM). 10 deterministic checks. Each is a `_check_*` function returning `list[Finding]`. Sorted critical → warning → info. The PVPC comparison check (`_check_pvpc_comparison`) is the only one that makes HTTP calls.
 - **comparator.py** — PVPC tariff comparison engine. Compares a libre fija bill against PVPC for the same period. Only `comparator.py` + `pvpc_client.py` know about ESIOS.
 - **api/main.py** — FastAPI with `GET /api/health`, `POST /api/analyze`. CORS for localhost:3000.
 - **app.py** — Streamlit UI. Caches PDF extraction per session (`@st.cache_data`).
