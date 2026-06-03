@@ -59,20 +59,59 @@ def main() -> None:
     pdf_bytes = uploaded.getvalue()
 
     try:
-        with st.spinner("Analizando factura con Claude... (~10-20s)"):
+        with st.status("Extrayendo datos con Claude...") as status:
+            print("[Bill Advisor] Extrayendo datos con Claude...")
             factura = _extract_cached(pdf_bytes)
+            print(
+                f"[Bill Advisor]  → extraída: {factura.contrato.modalidad}, "
+                f"{factura.contrato.comercializadora}, "
+                f"{factura.periodo.fecha_inicio.strftime('%d/%m/%Y')} → "
+                f"{factura.periodo.fecha_fin.strftime('%d/%m/%Y')}, "
+                f"{factura.energia.kwh_total:.0f} kWh, "
+                f"€{factura.totales.total_factura_eur:.2f}"
+            )
+            status.update(label="Factura extraída correctamente", state="complete")
+
+            status.update(
+                label="Ejecutando auditoría (10 checks)...", state="running"
+            )
+            print("[Bill Advisor] Ejecutando auditoría (10 checks)...")
+            findings = audit(factura)
+
+            pvpc_findings = [
+                f for f in findings if f.code == "pvpc_comparison"
+            ]
+            if pvpc_findings:
+                f_pvpc = pvpc_findings[0]
+                print(f"[Bill Advisor]  → PVPC: {f_pvpc.titulo}")
+                if f_pvpc.ahorro_estimado_eur_mes:
+                    annual = f_pvpc.ahorro_estimado_eur_mes * 12
+                    print(f"[Bill Advisor]     ahorro estimado: ~€{annual:.0f}/año")
+            else:
+                print(
+                    "[Bill Advisor]  → PVPC: no aplica "
+                    "(PVPC bill o ESIOS no disponible)"
+                )
+            print(f"[Bill Advisor]  → {len(findings)} hallazgos encontrados")
+            status.update(
+                label=f"Auditoría completada ({len(findings)} hallazgos)",
+                state="complete",
+            )
+
+            status.update(label="Renderizando resultados...", state="running")
+            print("[Bill Advisor] Renderizando resultados en UI...")
+
     except Exception as exc:  # noqa: BLE001 - surface everything to the user
         st.error(
-            f"Error al extraer datos de la factura.\n\n"
+            f"Error al analizar la factura.\n\n"
             f"**{type(exc).__name__}**: {exc}"
         )
         st.caption(
             "Verifica que el PDF sea una factura eléctrica española válida "
             "y que tu API key sea correcta."
         )
+        print(f"[Bill Advisor] ERROR: {type(exc).__name__}: {exc}")
         return
-
-    findings = audit(factura)
 
     _render_summary(factura)
     _render_findings(findings)
