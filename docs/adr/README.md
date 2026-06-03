@@ -16,3 +16,7 @@ Format follows [Michael Nygard's template](https://github.com/joelparkerhenderso
 | 0006 | [Same-comercializadora savings only](0006-same-comercializadora-only.md) | Accepted |
 | 0007 | [Flat package layout](0007-flat-package-layout.md)                     | Accepted |
 | 0008 | [Prompt caching strategy](0008-prompt-caching.md)                      | Accepted |
+| 0009 | [Direct ESIOS call over MCP](0009-direct-esios-over-mcp.md)            | Accepted |
+| 0010 | [Uniform kWh distribution](0010-uniform-kwh-distribution.md)            | Accepted |
+| 0011 | [Deterministic audit](0011-deterministic-audit.md)                      | Accepted |
+| 0012 | [Defer tests and CI](0012-defer-tests-and-ci.md)                        | Accepted |
