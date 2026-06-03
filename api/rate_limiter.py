@@ -81,6 +81,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "POST" and request.url.path == "/api/analyze":
             client_ip = request.client.host if request.client else "unknown"
             if not self._limiter.is_allowed(client_ip):
+                print(
+                    f"[Bill Advisor API] RATE LIMITED: {client_ip} — "
+                    f"{self._limiter.max_requests}/{self._limiter.window_seconds}s "
+                    f"excedido"
+                )
                 return JSONResponse(
                     status_code=429,
                     content={
