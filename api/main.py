@@ -17,6 +17,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
+from api.rate_limiter import RateLimitMiddleware
 from bill_advisor.audit import audit
 from bill_advisor.extraction import extract_factura
 
@@ -35,6 +36,12 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+)
+
+app.add_middleware(
+    RateLimitMiddleware,
+    max_requests=10,
+    window_seconds=60,
 )
 
 
