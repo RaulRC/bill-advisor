@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 
 from bill_advisor.audit import Finding, audit
 from bill_advisor.extraction import extract_factura
+from bill_advisor.rag.query import ask
 from bill_advisor.schemas import Factura
 
 load_dotenv()
@@ -117,6 +118,7 @@ def main() -> None:
     _render_findings(findings)
     _render_detalle(factura)
     _render_notas(factura)
+    _render_chat(factura)
 
 
 # -- Sections ---------------------------------------------------------------
@@ -346,6 +348,50 @@ def _render_notas(f: Factura) -> None:
         )
         for i, nota in enumerate(f.notas_extraccion, 1):
             st.markdown(f"**{i}.** {nota}")
+
+
+def _render_chat(f: Factura) -> None:
+    """Chat interface for asking questions about the factura."""
+    st.divider()
+    st.subheader("💬 Pregunta sobre tu factura")
+    st.caption(
+        "Escribe una pregunta sobre cualquier concepto de tu factura. "
+        "Ej: *¿Qué son los peajes?*, *¿Este cargo de €4,39 es normal?*, "
+        "*¿Puedo ahorrar en potencia?*"
+    )
+
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
+
+    for msg in st.session_state.chat_messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    if prompt := st.chat_input("Escribe tu pregunta aquí..."):
+        st.session_state.chat_messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"), st.spinner("Consultando documentación..."):
+                print(f"[Bill Advisor] Chat: {prompt}")
+                try:
+                    answer = ask(
+                        prompt,
+                        f.model_dump(mode="json"),
+                    )
+                    st.markdown(answer)
+                    st.session_state.chat_messages.append(
+                        {"role": "assistant", "content": answer}
+                    )
+                    print("[Bill Advisor] Chat: respuesta enviada")
+                except Exception as exc:  # noqa: BLE001
+                    err = (
+                        "Lo siento, no he podido responder. "
+                        "Verifica que la API key de Anthropic esté configurada "
+                        "y funcionando."
+                    )
+                    st.error(err)
+                    print(f"[Bill Advisor] Chat ERROR: {type(exc).__name__}: {exc}")
 
 
 if __name__ == "__main__":

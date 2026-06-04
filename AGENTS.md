@@ -18,7 +18,8 @@ ruff check .                                          # lint
 - **audit.py** — Pure logic (no LLM). 10 deterministic checks. Each is a `_check_*` function returning `list[Finding]`. Sorted critical → warning → info. The PVPC comparison check (`_check_pvpc_comparison`) is the only one that makes HTTP calls.
 - **comparator.py** — PVPC tariff comparison engine. Compares a libre fija bill against PVPC for the same period. Only `comparator.py` + `pvpc_client.py` know about ESIOS.
 - **api/main.py** — FastAPI with `GET /api/health`, `POST /api/analyze`. CORS for localhost:3000.
-- **app.py** — Streamlit UI. Caches PDF extraction per session (`@st.cache_data`).
+- **app.py** — Streamlit UI. Caches PDF extraction per session (`@st.cache_data`). Includes a RAG chat ("Pregunta sobre tu factura") backed by corpus docs in `bill_advisor/rag/corpus/`.
+- **bill_advisor/rag/query.py** — Claude Sonnet 4 Q&A function. Loads all `.md` corpus docs at import; accepts question + Factura JSON, returns plain-Spanish answer. System prompt is prompt-cached.
 
 ## Domain model quirks (critical for extraction quality)
 
