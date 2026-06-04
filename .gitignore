@@ -13,3 +13,6 @@ venv/
 tests/fixtures/*.pdf
 tests/fixtures/*.json
 !tests/fixtures/.gitkeep
+
+# Local deployment plans (contains server details, not for public)
+docs/deployment-plan.md
