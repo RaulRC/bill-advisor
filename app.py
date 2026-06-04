@@ -378,6 +378,7 @@ def _render_chat(f: Factura) -> None:
                     answer = ask(
                         prompt,
                         f.model_dump(mode="json"),
+                        messages=st.session_state.chat_messages,
                     )
                     st.markdown(answer)
                     st.session_state.chat_messages.append(

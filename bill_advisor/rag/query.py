@@ -53,6 +53,7 @@ def ask(
     question: str,
     factura_json: dict,
     *,
+    messages: list[dict] | None = None,
     client: anthropic.Anthropic | None = None,
 ) -> str:
     """Answer a question about the user's electricity bill.
@@ -60,6 +61,9 @@ def ask(
     Args:
         question: The user's question in Spanish.
         factura_json: Factura in JSON/dict form (from ``model_dump(mode="json")``).
+        messages: Optional conversation history so far
+            (list of ``{"role": ..., "content": ...}`` dicts).
+            Pass ``st.session_state.chat_messages`` when used via Streamlit.
         client: Optional Anthropic client. Creates a default one if None.
 
     Returns:
@@ -69,6 +73,8 @@ def ask(
         client = anthropic.Anthropic(
             api_key=os.environ["ANTHROPIC_API_KEY"],
         )
+
+    prev = messages or []
 
     res = client.messages.create(
         model="claude-sonnet-4-20250514",
@@ -81,6 +87,7 @@ def ask(
             },
         ],
         messages=[
+            *prev,
             {
                 "role": "user",
                 "content": (
