@@ -21,3 +21,4 @@ Format follows [Michael Nygard's template](https://github.com/joelparkerhenderso
 | 0011 | [Deterministic audit](0011-deterministic-audit.md)                      | Accepted |
 | 0012 | [Defer tests and CI](0012-defer-tests-and-ci.md)                        | Accepted |
 | 0013 | [In-memory rate limiting](0013-rate-limiting-strategy.md)               | Accepted |
+| 0014 | [Structured logging](0014-structured-logging.md)                        | Accepted |

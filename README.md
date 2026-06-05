@@ -14,7 +14,7 @@ PVPC tariff comparison is built in (see "PVPC Comparator" in [`AGENTS.md`](AGENT
 
 ## Quick start
 
-Requires Python ≥ 3.10 and `uv`. Anthropic API key needed.
+Requires Python ≥ 3.10, `uv`, and an [Anthropic API key](https://console.anthropic.com/). For PVPC tariff comparison you also need an [ESIOS token](https://api.esios.ree.es/).
 
 ```bash
 git clone <repo>
@@ -22,8 +22,9 @@ cd bill-advisor
 uv venv
 uv pip install -e .
 
-# Create .env with your API key
+# Create .env with API keys (unquoted values for Docker compat)
 echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+echo "ESIOS_TOKEN=your-esios-token" >> .env
 
 # CLI extraction
 .venv/bin/python -m bill_advisor.extraction path/to/factura.pdf
@@ -36,6 +37,10 @@ echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
 
 # FastAPI server (production UI backend — consumed by the Next.js frontend)
 .venv/bin/uvicorn api.main:app --reload --port 8000
+
+# Docker (production)
+docker build -t bill-advisor .
+docker run -p 8501:8501 --env-file .env -v ~/bill-advisor-logs:/app/logs bill-advisor
 ```
 
 ### API endpoints
@@ -55,29 +60,61 @@ Auto-generated docs (Swagger UI) live at `http://localhost:8000/docs`.
 ┌──────────────┐      ┌──────────────────────┐      ┌──────────────┐
 │  PDF bytes   │ ───▶ │  extraction.py       │ ───▶ │  Factura     │
 │  (Streamlit  │      │  (Claude vision +    │      │  (Pydantic)  │
-│   or CLI)    │      │   tool use)          │      └──────┬───────┘
+│   or API)    │      │   tool use)          │      └──────┬───────┘
 └──────────────┘      └──────────────────────┘             │
-                                                            ▼
-                                                    ┌──────────────┐
-                                                    │  audit.py    │
-                                                    │  (9 rule     │
-                                                    │   checks)    │
-                                                    └──────┬───────┘
-                                                            │
-                                                            ▼
-                                                    ┌──────────────┐
-                                                    │  Findings    │
-                                                    │  (sorted by  │
-                                                    │   severity)  │
-                                                    └──────────────┘
+                                                             │
+                                                             ▼
+                                                     ┌───────────────┐
+                                                     │  audit.py     │
+                                                     │  (10 checks)  │
+                                                     │               │
+                                                     │  ┌──────────┐ │
+                                                     │  │ PVPC     │─│──▶ pvpc_client.py
+                                                     │  │ compare  │ │       │ ESIOS
+                                                     │  └──────────┘ │       ▼
+                                                     └───────┬───────┘  ┌──────────────┐
+                                                             │          │ comparator   │
+                                                             ▼          │ .py (recalc) │
+                                                     ┌──────────────┐   └──────┬───────┘
+                                                     │  Findings    │◀─────────┘
+                                                     │  (sorted by  │
+                                                     │   severity)  │
+                                                     └──────┬───────┘
+                                                             │
+                                        ┌────────────────────┼────────────────────┐
+                                        │                    │                    │
+                                        ▼                    ▼                    ▼
+                                  ┌──────────┐       ┌───────────┐       ┌──────────────┐
+                                  │  app.py  │       │ api/main  │       │  rag/query.py│
+                                  │ Streamlit│       │  FastAPI  │       │  (corpus     │
+                                  │  UI +    │       │ + rate_   │       │   Q&A chat)  │
+                                  │  chat    │       │ limiter   │       │              │
+                                  └──────────┘       └───────────┘       └──────────────┘
+                                  │                    │
+                                  └────────────────────┘
+                                              │
+                                              ▼
+                                      ┌──────────────┐
+                                      │  logger.py   │
+                                      │  stdout +    │
+                                      │  /app/logs/  │
+                                      └──────────────┘
 ```
 
 **Modules:**
-- `bill_advisor/schemas.py` — Pydantic models for the extracted `Factura`. Includes a PVPC-specific `CostesPVPC` sub-block.
-- `bill_advisor/extraction.py` — Claude API call: PDF as `document` block + tool use forcing the `record_factura_extraida` schema. System prompt + tool schema are prompt-cached.
-- `bill_advisor/audit.py` — Pure-logic anomaly checks against a validated `Factura`. No LLM.
-- `api/main.py` — FastAPI HTTP layer wrapping extraction + audit. Designed to be consumed by the Next.js frontend (`web/`, scaffolded next).
-- `app.py` — Streamlit UI (kept for quick local testing / debugging).
+
+| Module | Responsibility |
+|---|---|
+| `bill_advisor/schemas.py` | Pydantic models for `Factura`. Single source of truth with 11 models. |
+| `bill_advisor/extraction.py` | Claude API call: PDF → tool-use forcing the `record_factura_extraida` schema. System prompt + tool schema prompt-cached (~90% cost saving on repeats). |
+| `bill_advisor/audit.py` | 10 deterministic anomaly checks against a validated `Factura`. No LLM. The PVPC comparison check (`_check_pvpc_comparison`) internally delegates to `comparator.py`. |
+| `bill_advisor/comparator.py` | PVPC tariff recompute engine: distributes kWh uniformly across hours per period, recomputes cost at hourly PVPC rates, returns `ComparisonResult`. |
+| `bill_advisor/pvpc_client.py` | ESIOS API client — fetches indicator #1001 (PVPC 2.0TD Península hourly prices). Returns `dict[date, dict[int, float]]` in €/kWh. |
+| `bill_advisor/logger.py` | Module-level logger with two handlers: stdout (Docker logs) + file (`/app/logs/bill-advisor.log`). Messages prefixed `[Bill Advisor]`. |
+| `bill_advisor/rag/query.py` | Claude Sonnet 4 Q&A backed by 7 corpus `.md` files in `rag/corpus/`. Accepts `messages` list for conversation memory. Prompt-cached system prompt. |
+| `api/main.py` | FastAPI server with `GET /api/health` and `POST /api/analyze`. CORS for localhost:3000. Wraps extraction + audit. |
+| `api/rate_limiter.py` | In-memory sliding-window rate limiter: 10 req/min per IP on POST `/api/analyze`. Returns 429 with `Retry-After`. |
+| `app.py` | Streamlit UI. Single-page: upload → extraction → audit → findings + RAG chat. Conversation stored in session state (not backend). |
 
 ## Design decisions
 
@@ -92,16 +129,15 @@ Key decisions are documented as ADRs in [`docs/adr/`](docs/adr/). Highlights:
 - [ADR-0010](docs/adr/0010-uniform-kwh-distribution.md) — Uniform kWh distribution in PVPC comparison
 - [ADR-0011](docs/adr/0011-deterministic-audit.md) — Deterministic audit (zero LLM)
 - [ADR-0012](docs/adr/0012-defer-tests-and-ci.md) — Defer tests and CI to post-MVP
+- [ADR-0013](docs/adr/0013-rate-limiting-strategy.md) — In-memory rate limiting (10 req/min per IP)
+- [ADR-0014](docs/adr/0014-structured-logging.md) — Structured logging with stdlib `logging`
 
 ## What's next
 
-See [`docs/next-steps.md`](docs/next-steps.md) for the prioritized roadmap. Headline items:
-1. Test extraction + PVPC comparator against real bills from multiple comercializadoras
-2. Polish deferred items (prompt rule 10, annual savings framing, schema naming)
-3. Write unit tests for `audit.py` and `comparator.py`
-4. RAG explainer corpus (plain-Spanish line-by-line explanations)
-5. Deploy to Streamlit Cloud with demo mode
-6. Phase 2 — Datadis integration for hourly consumption
+See [`docs/next-steps.md`](docs/next-steps.md). Headline items:
+1. Deploy to Lightsail with Docker + Caddy + Cloudflare DNS
+2. Write unit tests for `audit.py` and `comparator.py`
+3. Phase 2 — Datadis integration for hourly consumption profiles
 
 ## Disclaimers
 
