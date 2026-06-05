@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 
 from bill_advisor.audit import Finding, audit
 from bill_advisor.extraction import extract_factura
+from bill_advisor.logger import logger
 from bill_advisor.rag.query import ask
 from bill_advisor.schemas import Factura
 
@@ -61,22 +62,23 @@ def main() -> None:
 
     try:
         with st.status("Extrayendo datos con Claude...") as status:
-            print("[Bill Advisor] Extrayendo datos con Claude...")
+            logger.info("Extrayendo datos con Claude...")
             factura = _extract_cached(pdf_bytes)
-            print(
-                f"[Bill Advisor]  → extraída: {factura.contrato.modalidad}, "
-                f"{factura.contrato.comercializadora}, "
-                f"{factura.periodo.fecha_inicio.strftime('%d/%m/%Y')} → "
-                f"{factura.periodo.fecha_fin.strftime('%d/%m/%Y')}, "
-                f"{factura.energia.kwh_total:.0f} kWh, "
-                f"€{factura.totales.total_factura_eur:.2f}"
+            logger.info(
+                " → extraída: %s, %s, %s → %s, %.0f kWh, €%.2f",
+                factura.contrato.modalidad,
+                factura.contrato.comercializadora,
+                factura.periodo.fecha_inicio.strftime("%d/%m/%Y"),
+                factura.periodo.fecha_fin.strftime("%d/%m/%Y"),
+                factura.energia.kwh_total,
+                factura.totales.total_factura_eur,
             )
             status.update(label="Factura extraída correctamente", state="complete")
 
             status.update(
                 label="Ejecutando auditoría (10 checks)...", state="running"
             )
-            print("[Bill Advisor] Ejecutando auditoría (10 checks)...")
+            logger.info("Ejecutando auditoría (10 checks)...")
             findings = audit(factura)
 
             pvpc_findings = [
@@ -84,23 +86,22 @@ def main() -> None:
             ]
             if pvpc_findings:
                 f_pvpc = pvpc_findings[0]
-                print(f"[Bill Advisor]  → PVPC: {f_pvpc.titulo}")
+                logger.info(" → PVPC: %s", f_pvpc.titulo)
                 if f_pvpc.ahorro_estimado_eur_mes:
                     annual = f_pvpc.ahorro_estimado_eur_mes * 12
-                    print(f"[Bill Advisor]     ahorro estimado: ~€{annual:.0f}/año")
+                    logger.info("    ahorro estimado: ~€%d/año", annual)
             else:
-                print(
-                    "[Bill Advisor]  → PVPC: no aplica "
-                    "(PVPC bill o ESIOS no disponible)"
+                logger.info(
+                    " → PVPC: no aplica (PVPC bill o ESIOS no disponible)"
                 )
-            print(f"[Bill Advisor]  → {len(findings)} hallazgos encontrados")
+            logger.info(" → %d hallazgos encontrados", len(findings))
             status.update(
                 label=f"Auditoría completada ({len(findings)} hallazgos)",
                 state="complete",
             )
 
             status.update(label="Renderizando resultados...", state="running")
-            print("[Bill Advisor] Renderizando resultados en UI...")
+            logger.info("Renderizando resultados en UI...")
 
     except Exception as exc:  # noqa: BLE001 - surface everything to the user
         st.error(
@@ -111,7 +112,7 @@ def main() -> None:
             "Verifica que el PDF sea una factura eléctrica española válida "
             "y que tu API key sea correcta."
         )
-        print(f"[Bill Advisor] ERROR: {type(exc).__name__}: {exc}")
+        logger.error("%s: %s", type(exc).__name__, exc)
         return
 
     _render_summary(factura)
@@ -373,7 +374,7 @@ def _render_chat(f: Factura) -> None:
             st.markdown(prompt)
 
         with st.chat_message("assistant"), st.spinner("Consultando documentación..."):
-                print(f"[Bill Advisor] Chat: {prompt}")
+                logger.info("Chat: %s", prompt)
                 try:
                     answer = ask(
                         prompt,
@@ -384,7 +385,7 @@ def _render_chat(f: Factura) -> None:
                     st.session_state.chat_messages.append(
                         {"role": "assistant", "content": answer}
                     )
-                    print("[Bill Advisor] Chat: respuesta enviada")
+                    logger.info("Chat: respuesta enviada")
                 except Exception as exc:  # noqa: BLE001
                     err = (
                         "Lo siento, no he podido responder. "
@@ -392,7 +393,7 @@ def _render_chat(f: Factura) -> None:
                         "y funcionando."
                     )
                     st.error(err)
-                    print(f"[Bill Advisor] Chat ERROR: {type(exc).__name__}: {exc}")
+                    logger.error("Chat ERROR: %s: %s", type(exc).__name__, exc)
 
 
 if __name__ == "__main__":

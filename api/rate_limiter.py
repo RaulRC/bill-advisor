@@ -21,6 +21,8 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp
 
+from bill_advisor.logger import logger
+
 _MAX_REQUESTS = 10
 _WINDOW_SECONDS = 60
 
@@ -81,10 +83,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.method == "POST" and request.url.path == "/api/analyze":
             client_ip = request.client.host if request.client else "unknown"
             if not self._limiter.is_allowed(client_ip):
-                print(
-                    f"[Bill Advisor API] RATE LIMITED: {client_ip} — "
-                    f"{self._limiter.max_requests}/{self._limiter.window_seconds}s "
-                    f"excedido"
+                logger.warning(
+                    "[API] RATE LIMITED: %s — %d/%ds excedido",
+                    client_ip,
+                    self._limiter.max_requests,
+                    self._limiter.window_seconds,
                 )
                 return JSONResponse(
                     status_code=429,
