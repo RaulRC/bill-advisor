@@ -16,8 +16,9 @@ jobs:
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           script: |
+            rm -rf ~/bill-advisor
+            git clone https://github.com/RaulRC/bill-advisor.git ~/bill-advisor
             cd ~/bill-advisor
-            git pull origin main
             docker build -t bill-advisor .
             docker stop bill-advisor || true
             docker rm bill-advisor || true
