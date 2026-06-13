@@ -15,16 +15,22 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          envs: GH_TOKEN,ANTHROPIC_API_KEY,ESIOS_TOKEN
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ESIOS_TOKEN: ${{ secrets.ESIOS_TOKEN }}
           script: |
             rm -rf ~/bill-advisor
-            git clone https://github.com/RaulRC/bill-advisor.git ~/bill-advisor
+            git clone https://$GH_TOKEN@github.com/RaulRC/bill-advisor.git ~/bill-advisor
             cd ~/bill-advisor
             docker build -t bill-advisor .
             docker stop bill-advisor || true
             docker rm bill-advisor || true
             docker run -d --restart unless-stopped \
               -p 80:8501 \
-              --env-file .env \
+              -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+              -e ESIOS_TOKEN="$ESIOS_TOKEN" \
               -v ~/bill-advisor-logs:/app/logs \
               --name bill-advisor \
               bill-advisor
