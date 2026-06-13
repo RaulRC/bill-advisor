@@ -1,0 +1,29 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Lightsail
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          script: |
+            cd ~/bill-advisor
+            git pull origin main
+            docker build -t bill-advisor .
+            docker stop bill-advisor || true
+            docker rm bill-advisor || true
+            docker run -d --restart unless-stopped \
+              -p 80:8501 \
+              --env-file .env \
+              -v ~/bill-advisor-logs:/app/logs \
+              --name bill-advisor \
+              bill-advisor
