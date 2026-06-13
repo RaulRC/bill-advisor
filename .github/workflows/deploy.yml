@@ -15,14 +15,14 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          envs: GH_TOKEN,ANTHROPIC_API_KEY,ESIOS_TOKEN
+          envs: GITHUB_TOKEN,ANTHROPIC_API_KEY,ESIOS_TOKEN
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ESIOS_TOKEN: ${{ secrets.ESIOS_TOKEN }}
           script: |
             rm -rf ~/bill-advisor
-            git clone https://$GH_TOKEN@github.com/RaulRC/bill-advisor.git ~/bill-advisor
+            git clone https://$GITHUB_TOKEN@github.com/RaulRC/bill-advisor.git ~/bill-advisor
             cd ~/bill-advisor
             docker build -t bill-advisor .
             docker stop bill-advisor || true
