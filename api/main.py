@@ -42,7 +42,7 @@ app.add_middleware(
 
 app.add_middleware(
     RateLimitMiddleware,
-    max_requests=10,
+    max_requests=2,
     window_seconds=60,
 )
 
