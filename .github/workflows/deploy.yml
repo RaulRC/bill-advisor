@@ -16,10 +16,6 @@ jobs:
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           envs: GITHUB_TOKEN,ANTHROPIC_API_KEY,ESIOS_TOKEN
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ESIOS_TOKEN: ${{ secrets.ESIOS_TOKEN }}
           script: |
             rm -rf ~/bill-advisor
             git clone https://$GITHUB_TOKEN@github.com/RaulRC/bill-advisor.git ~/bill-advisor
@@ -34,3 +30,7 @@ jobs:
               -v ~/bill-advisor-logs:/app/logs \
               --name bill-advisor \
               bill-advisor
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ESIOS_TOKEN: ${{ secrets.ESIOS_TOKEN }}
