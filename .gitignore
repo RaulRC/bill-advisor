@@ -16,3 +16,4 @@ tests/fixtures/*.json
 
 # Local deployment plans (contains server details, not for public)
 docs/deployment-plan.md
+*.pem
