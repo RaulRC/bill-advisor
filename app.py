@@ -9,15 +9,33 @@ No Datadis, no comparator yet.
 from __future__ import annotations
 
 import os
+import time
 
 import streamlit as st
 from dotenv import load_dotenv
+from prometheus_client import Counter, Histogram, start_http_server
 
 from bill_advisor.audit import Finding, audit
 from bill_advisor.extraction import extract_factura
 from bill_advisor.logger import logger
 from bill_advisor.rag.query import ask
 from bill_advisor.schemas import Factura
+
+SESSIONS = Counter("bill_sessions", "Unique browser sessions")
+EXTRACTIONS = Counter("bill_extractions", "Facturas extraídas")
+ERRORS = Counter("bill_extraction_errors", "Extraction failures")
+PVPC_SAVINGS_FOUND = Counter(
+    "bill_pvpc_savings_found", "PVPC cheaper than current tariff"
+)
+PVPC_MORE_EXPENSIVE = Counter(
+    "bill_pvpc_more_expensive", "Current tariff cheaper than PVPC"
+)
+CHAT_QUESTIONS = Counter("bill_chat_questions", "RAG chat questions asked")
+EXTRACTION_DURATION = Histogram(
+    "bill_extraction_duration_seconds",
+    "Extraction + audit wall time",
+    buckets=[5, 10, 20, 30, 45, 60, 90, 120],
+)
 
 load_dotenv()
 
@@ -29,6 +47,8 @@ def _extract_cached(pdf_bytes: bytes) -> Factura:
 
 
 def main() -> None:
+    start_http_server(8001)
+
     st.set_page_config(
         page_title="Tu factura de luz",
         page_icon=None,
@@ -41,6 +61,10 @@ def main() -> None:
         "Sube tu factura eléctrica española en PDF y obtén un análisis "
         "automático de cargos, anomalías y oportunidades de ahorro."
     )
+
+    if "session_tracked" not in st.session_state:
+        SESSIONS.inc()
+        st.session_state.session_tracked = True
 
     if not os.environ.get("ANTHROPIC_API_KEY"):
         st.error(
@@ -63,6 +87,7 @@ def main() -> None:
     try:
         with st.status("Extrayendo datos 🤖...") as status:
             logger.info("Extrayendo datos con Claude...")
+            t_start = time.time()
             factura = _extract_cached(pdf_bytes)
             logger.info(
                 " → extraída: %s, %s, %s → %s, %.0f kWh, €%.2f",
@@ -74,6 +99,8 @@ def main() -> None:
                 factura.totales.total_factura_eur,
             )
             status.update(label="Factura extraída correctamente", state="complete")
+            EXTRACTIONS.inc()
+            EXTRACTION_DURATION.observe(time.time() - t_start)
 
             status.update(
                 label="Ejecutando auditoría 🔎 (10 checks)...", state="running"
@@ -90,6 +117,9 @@ def main() -> None:
                 if f_pvpc.ahorro_estimado_eur_mes:
                     annual = f_pvpc.ahorro_estimado_eur_mes * 12
                     logger.info("    ahorro estimado: ~€%d/año", annual)
+                    PVPC_SAVINGS_FOUND.inc()
+                else:
+                    PVPC_MORE_EXPENSIVE.inc()
             else:
                 logger.info(
                     " → PVPC: no aplica (PVPC bill o ESIOS no disponible)"
@@ -112,6 +142,7 @@ def main() -> None:
             "Verifica que el PDF sea una factura eléctrica española válida "
             "y que tu API key sea correcta."
         )
+        ERRORS.inc()
         logger.error("%s: %s", type(exc).__name__, exc)
         return
 
@@ -385,6 +416,7 @@ def _render_chat(f: Factura) -> None:
                     st.session_state.chat_messages.append(
                         {"role": "assistant", "content": answer}
                     )
+                    CHAT_QUESTIONS.inc()
                     logger.info("Chat: respuesta enviada")
                 except Exception as exc:  # noqa: BLE001
                     err = (
