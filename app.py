@@ -30,13 +30,13 @@ def _extract_cached(pdf_bytes: bytes) -> Factura:
 
 def main() -> None:
     st.set_page_config(
-        page_title="Bill Advisor",
+        page_title="Tu factura de luz",
         page_icon=None,
         layout="wide",
         initial_sidebar_state="collapsed",
     )
 
-    st.title("Bill Advisor")
+    st.title("📄 Tu factura de luz ⚡💡")
     st.caption(
         "Sube tu factura eléctrica española en PDF y obtén un análisis "
         "automático de cargos, anomalías y oportunidades de ahorro."
@@ -61,7 +61,7 @@ def main() -> None:
     pdf_bytes = uploaded.getvalue()
 
     try:
-        with st.status("Extrayendo datos con Claude...") as status:
+        with st.status("Extrayendo datos 🤖...") as status:
             logger.info("Extrayendo datos con Claude...")
             factura = _extract_cached(pdf_bytes)
             logger.info(
@@ -76,7 +76,7 @@ def main() -> None:
             status.update(label="Factura extraída correctamente", state="complete")
 
             status.update(
-                label="Ejecutando auditoría (10 checks)...", state="running"
+                label="Ejecutando auditoría 🔎 (10 checks)...", state="running"
             )
             logger.info("Ejecutando auditoría (10 checks)...")
             findings = audit(factura)
