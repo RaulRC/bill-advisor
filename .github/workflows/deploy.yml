@@ -26,7 +26,7 @@ jobs:
             docker run -d --restart unless-stopped \
               -p 80:8501 \
               -p 8001:8001 \
-	      -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+              -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
               -e ESIOS_TOKEN="$ESIOS_TOKEN" \
               -v ~/bill-advisor-logs:/app/logs \
               --name bill-advisor \
