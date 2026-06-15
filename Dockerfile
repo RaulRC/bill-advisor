@@ -12,6 +12,7 @@ COPY app.py .
 RUN pip install --no-cache-dir .
 
 EXPOSE 8501
+EXPOSE 8001
 
 CMD ["streamlit", "run", "app.py", \
      "--server.port=8501", \
