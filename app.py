@@ -13,29 +13,21 @@ import time
 
 import streamlit as st
 from dotenv import load_dotenv
-from prometheus_client import Counter, Histogram, start_http_server
 
 from bill_advisor.audit import Finding, audit
 from bill_advisor.extraction import extract_factura
 from bill_advisor.logger import logger
+from bill_advisor.metrics import (
+    CHAT_QUESTIONS,
+    ERRORS,
+    EXTRACTION_DURATION,
+    EXTRACTIONS,
+    PVPC_MORE_EXPENSIVE,
+    PVPC_SAVINGS_FOUND,
+    SESSIONS,
+)
 from bill_advisor.rag.query import ask
 from bill_advisor.schemas import Factura
-
-SESSIONS = Counter("bill_sessions", "Unique browser sessions")
-EXTRACTIONS = Counter("bill_extractions", "Facturas extraídas")
-ERRORS = Counter("bill_extraction_errors", "Extraction failures")
-PVPC_SAVINGS_FOUND = Counter(
-    "bill_pvpc_savings_found", "PVPC cheaper than current tariff"
-)
-PVPC_MORE_EXPENSIVE = Counter(
-    "bill_pvpc_more_expensive", "Current tariff cheaper than PVPC"
-)
-CHAT_QUESTIONS = Counter("bill_chat_questions", "RAG chat questions asked")
-EXTRACTION_DURATION = Histogram(
-    "bill_extraction_duration_seconds",
-    "Extraction + audit wall time",
-    buckets=[5, 10, 20, 30, 45, 60, 90, 120],
-)
 
 load_dotenv()
 
@@ -47,8 +39,6 @@ def _extract_cached(pdf_bytes: bytes) -> Factura:
 
 
 def main() -> None:
-    start_http_server(8001)
-
     st.set_page_config(
         page_title="Tu factura de luz",
         page_icon=None,
