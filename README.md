@@ -129,7 +129,7 @@ Key decisions are documented as ADRs in [`docs/adr/`](docs/adr/). Highlights:
 - [ADR-0010](docs/adr/0010-uniform-kwh-distribution.md) — Uniform kWh distribution in PVPC comparison
 - [ADR-0011](docs/adr/0011-deterministic-audit.md) — Deterministic audit (zero LLM)
 - [ADR-0012](docs/adr/0012-defer-tests-and-ci.md) — Defer tests and CI to post-MVP
-- [ADR-0013](docs/adr/0013-rate-limiting-strategy.md) — In-memory rate limiting (10 req/min per IP)
+- [ADR-0013](docs/adr/0013-rate-limiting-strategy.md) — In-memory rate limiting (2 req/min per IP)
 - [ADR-0014](docs/adr/0014-structured-logging.md) — Structured logging with stdlib `logging`
 
 ## What's next
