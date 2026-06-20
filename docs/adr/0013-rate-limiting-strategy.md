@@ -31,5 +31,5 @@ Use a custom in-memory sliding-window rate limiter implemented as FastAPI ASGI m
 - **IP-based only** — no concept of authenticated users yet (no auth system exists). Clients behind a shared NAT will share a rate limit.
 
 **Neutral:**
-- Default limit: 10 requests per 60 seconds per IP, configurable at middleware registration
+- Default limit: 2 requests per 60 seconds per IP, configurable at middleware registration
 - Only tracks `POST /api/analyze`; `GET /api/health` is unrestricted
