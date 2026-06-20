@@ -66,15 +66,8 @@ The auditor answers "what's anomalous?". A separate AI flow would answer "what i
 
 **Effort:** ~1 weekend including corpus curation.
 
-## 6. Deploy to Streamlit Cloud
 
-Phase 1 portfolio target. Free tier, GitHub-backed, configure `ANTHROPIC_API_KEY` and `ESIOS_TOKEN` as secrets.
-
-**Prerequisites before deploying:**
-- Add a usage cap or rate limiter — public demos get scraped
-- Add a "demo mode" with a pre-loaded anonymized factura so visitors see something without uploading
-
-## 7. Phase 2 — Datadis integration
+## 8. Phase 2 — Datadis integration
 
 The real differentiator. Datadis exposes hourly consumption (CCH) once the user authorizes via NIF + CUPS.
 
@@ -86,7 +79,7 @@ The real differentiator. Datadis exposes hourly consumption (CCH) once the user 
 
 **Reuse opportunity:** this plugs into the existing Spanish electricity forecast project — the price forecast feeds the time-shifting advisor.
 
-## 8. Cross-comercializadora tariff comparator
+## 9. Cross-comercializadora tariff comparator
 
 Documented in [ADR-0006](adr/0006-same-comercializadora-only.md). Deferred from Phase 1.
 
@@ -96,6 +89,6 @@ Documented in [ADR-0006](adr/0006-same-comercializadora-only.md). Deferred from 
 
 **Honest framing:** "comparado con N tarifas de referencia, con tu mismo consumo facturarías €X (rango €X-€Y)" — never "switch to Y, save €Z."
 
-## 9. Multi-bill history
+## 10. Multi-bill history
 
 If a user uploads multiple bills over time, surface trends — consumption growth, price drift, seasonality. Lower-priority than the above; mostly portfolio polish.
