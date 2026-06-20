@@ -22,3 +22,6 @@ Format follows [Michael Nygard's template](https://github.com/joelparkerhenderso
 | 0012 | [Defer tests and CI](0012-defer-tests-and-ci.md)                        | Accepted |
 | 0013 | [In-memory rate limiting](0013-rate-limiting-strategy.md)               | Accepted |
 | 0014 | [Structured logging](0014-structured-logging.md)                        | Accepted |
+| 0015 | [Prometheus metrics](0015-prometheus-metrics.md)                        | Accepted |
+| 0016 | [CI/CD deploy workflow](0016-ci-cd-deploy.md)                           | Accepted |
+| 0017 | [Secrets management](0017-secrets-management.md)                        | Accepted |

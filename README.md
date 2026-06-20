@@ -40,7 +40,13 @@ echo "ESIOS_TOKEN=your-esios-token" >> .env
 
 # Docker (production)
 docker build -t bill-advisor .
-docker run -p 8501:8501 --env-file .env -v ~/bill-advisor-logs:/app/logs bill-advisor
+docker run -p 80:8501 -p 8001:8001 \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -e ESIOS_TOKEN=your-token \
+  -v ~/bill-advisor-logs:/app/logs \
+  bill-advisor
+
+# Or via CI/CD: push to main → auto-deploys to Lightsail
 ```
 
 ### API endpoints
@@ -53,6 +59,18 @@ Once the FastAPI server is running on `http://localhost:8000`:
 | POST   | `/api/analyze`  | `multipart/form-data` with `pdf` field | `{"factura": {...}, "findings": [...]}` |
 
 Auto-generated docs (Swagger UI) live at `http://localhost:8000/docs`.
+
+### CI/CD — GitHub Actions + Lightsail
+
+Every push to `main` triggers a deploy via `appleboy/ssh-action`:
+
+1. SSH into Lightsail
+2. `git clone` fresh copy of the repo
+3. `docker build` the image
+4. Stop & remove old container
+5. Run new container with port mapping (80→8501, 8001→8001), API keys via `-e` flags, and a volume mount for persistent logs
+
+API keys (`ANTHROPIC_API_KEY`, `ESIOS_TOKEN`) are stored as GitHub secrets — never written to disk on the server. The `.env` file is for local development only.
 
 ## Architecture
 
@@ -89,16 +107,15 @@ Auto-generated docs (Swagger UI) live at `http://localhost:8000/docs`.
                                   │ Streamlit│       │  FastAPI  │       │  (corpus     │
                                   │  UI +    │       │ + rate_   │       │   Q&A chat)  │
                                   │  chat    │       │ limiter   │       │              │
-                                  └──────────┘       └───────────┘       └──────────────┘
-                                  │                    │
-                                  └────────────────────┘
-                                              │
-                                              ▼
-                                      ┌──────────────┐
-                                      │  logger.py   │
-                                      │  stdout +    │
-                                      │  /app/logs/  │
-                                      └──────────────┘
+                                  └────┬─────┘       └───────────┘       └──────────────┘
+                                       │
+                                       ├─────────────────────┐
+                                       ▼                     ▼
+                               ┌──────────────┐     ┌──────────────┐
+                               │  logger.py   │     │  metrics.py  │
+                               │  stdout +    │     │  Prometheus  │
+                               │  /app/logs/  │     │  :8001       │
+                               └──────────────┘     └──────────────┘
 ```
 
 **Modules:**
@@ -111,9 +128,10 @@ Auto-generated docs (Swagger UI) live at `http://localhost:8000/docs`.
 | `bill_advisor/comparator.py` | PVPC tariff recompute engine: distributes kWh uniformly across hours per period, recomputes cost at hourly PVPC rates, returns `ComparisonResult`. |
 | `bill_advisor/pvpc_client.py` | ESIOS API client — fetches indicator #1001 (PVPC 2.0TD Península hourly prices). Returns `dict[date, dict[int, float]]` in €/kWh. |
 | `bill_advisor/logger.py` | Module-level logger with two handlers: stdout (Docker logs) + file (`/app/logs/bill-advisor.log`). Messages prefixed `[Bill Advisor]`. |
+| `bill_advisor/metrics.py` | Prometheus counters and histogram with embedded HTTP server on port 8001. Tracks sessions, extractions, errors, PVPC results, chat questions, extraction duration. |
 | `bill_advisor/rag/query.py` | Claude Sonnet 4 Q&A backed by 7 corpus `.md` files in `rag/corpus/`. Accepts `messages` list for conversation memory. Prompt-cached system prompt. |
 | `api/main.py` | FastAPI server with `GET /api/health` and `POST /api/analyze`. CORS for localhost:3000. Wraps extraction + audit. |
-| `api/rate_limiter.py` | In-memory sliding-window rate limiter: 10 req/min per IP on POST `/api/analyze`. Returns 429 with `Retry-After`. |
+| `api/rate_limiter.py` | In-memory sliding-window rate limiter: 2 req/min per IP on POST `/api/analyze`. Returns 429 with `Retry-After`. |
 | `app.py` | Streamlit UI. Single-page: upload → extraction → audit → findings + RAG chat. Conversation stored in session state (not backend). |
 
 ## Design decisions
@@ -135,6 +153,9 @@ Key decisions are documented as ADRs in [`docs/adr/`](docs/adr/). Highlights:
 ## What's next
 
 See [`docs/next-steps.md`](docs/next-steps.md). Headline items:
+1. Build Grafana dashboard for usage metrics
+2. Write unit tests for `audit.py` and `comparator.py`
+3. Phase 2 — Datadis integration for hourly consumption profiles
 
 ## Disclaimers
 
