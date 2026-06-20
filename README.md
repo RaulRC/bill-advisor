@@ -135,9 +135,6 @@ Key decisions are documented as ADRs in [`docs/adr/`](docs/adr/). Highlights:
 ## What's next
 
 See [`docs/next-steps.md`](docs/next-steps.md). Headline items:
-1. Deploy to Lightsail with Docker + Caddy + Cloudflare DNS
-2. Write unit tests for `audit.py` and `comparator.py`
-3. Phase 2 — Datadis integration for hourly consumption profiles
 
 ## Disclaimers
 
