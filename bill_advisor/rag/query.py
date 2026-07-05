@@ -100,3 +100,30 @@ def ask(
     )
 
     return res.content[0].text
+
+
+def ask_general(
+    messages: list[dict],
+    *,
+    client: anthropic.Anthropic | None = None,
+) -> str:
+    """Answer a general question about Spanish electricity (no factura needed)."""
+    if client is None:
+        client = anthropic.Anthropic(
+            api_key=os.environ["ANTHROPIC_API_KEY"],
+        )
+
+    res = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        system=[
+            {
+                "type": "text",
+                "text": _SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            },
+        ],
+        messages=messages,
+    )
+
+    return res.content[0].text
