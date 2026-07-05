@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { AnalyzeResponse, Finding } from "./api";
 
 interface Props {
@@ -57,6 +58,8 @@ export function ResultsPanel({ data }: Props) {
   const energia = f.energia ?? {};
   const totales = f.totales ?? {};
   const periodo = f.periodo ?? {};
+  const notas: string[] = f.notas_extraccion ?? [];
+  const [notasOpen, setNotasOpen] = useState(false);
 
   return (
     <div>
@@ -85,6 +88,34 @@ export function ResultsPanel({ data }: Props) {
       {data.findings.map((f) => (
         <FindingCard key={f.code} f={f} />
       ))}
+
+      {notas.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <button
+            onClick={() => setNotasOpen((o) => !o)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#555",
+              padding: 0,
+            }}
+          >
+            {notasOpen ? "▼" : "▶"} Notas del extractor ({notas.length})
+          </button>
+          {notasOpen && (
+            <div style={{ marginTop: 8, fontSize: 13, color: "#666", lineHeight: 1.5 }}>
+              {notas.map((n, i) => (
+                <p key={i} style={{ margin: "0 0 6px" }}>
+                  {i + 1}. {n}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

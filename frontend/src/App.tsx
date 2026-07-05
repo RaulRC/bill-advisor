@@ -32,8 +32,23 @@ export function App() {
 
   useEffect(() => {
     loadPrices();
-    const id = setInterval(loadPrices, 300_000);
-    return () => clearInterval(id);
+
+    // Refresh when user returns to the tab
+    const onVisible = () => { if (!document.hidden) loadPrices(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    // One-time refresh at 20:30 for tomorrow's PVPC prices
+    const now = new Date();
+    const target = new Date();
+    target.setHours(20, 30, 0, 0);
+    const eveningTimer = now < target
+      ? setTimeout(loadPrices, target.getTime() - now.getTime())
+      : undefined;
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      clearTimeout(eveningTimer);
+    };
   }, [loadPrices]);
 
   // ── Analysis ─────────────────────────────────────────────────────────────
