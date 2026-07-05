@@ -24,7 +24,7 @@ jobs:
             docker stop bill-advisor || true
             docker rm bill-advisor || true
             docker run -d --restart unless-stopped \
-              -p 80:8501 \
+              -p 80:8000 \
               -p 8001:8001 \
               -e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
               -e ESIOS_TOKEN="$ESIOS_TOKEN" \
