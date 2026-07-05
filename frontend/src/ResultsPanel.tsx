@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { AnalyzeResponse, Finding } from "./api";
 
 interface Props {
@@ -17,18 +18,23 @@ const SEVERITY_LABELS: Record<string, string> = {
 };
 
 function FindingCard({ f }: { f: Finding }) {
+  const [open, setOpen] = useState(true);
+
   return (
     <div
+      onClick={() => setOpen((o) => !o)}
       style={{
         borderLeft: `4px solid ${SEVERITY_COLORS[f.severity]}`,
         padding: "12px 16px",
         marginBottom: 8,
         background: "#f9fafb",
         borderRadius: "0 8px 8px 0",
+        cursor: "pointer",
+        userSelect: "none",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <strong style={{ fontSize: 14 }}>{f.titulo}</strong>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <strong style={{ fontSize: 14 }}>{open ? "▼" : "▶"} {f.titulo}</strong>
         <span
           style={{
             fontSize: 11,
@@ -39,16 +45,50 @@ function FindingCard({ f }: { f: Finding }) {
           {SEVERITY_LABELS[f.severity]}
         </span>
       </div>
-      <p style={{ margin: 0, fontSize: 13, color: "#555", lineHeight: 1.4 }}>
-        {f.detalle}
-      </p>
-      {f.ahorro_estimado_eur_mes != null && (
-        <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, color: "#059669" }}>
-          Ahorro estimado: {f.ahorro_estimado_eur_mes.toFixed(0)} €/mes
-        </p>
+      {open && (
+        <>
+          <p style={{ margin: "8px 0 0", fontSize: 13, color: "#555", lineHeight: 1.4 }}>
+            {f.detalle}
+          </p>
+          {f.ahorro_estimado_eur_mes != null && (
+            <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, color: "#059669" }}>
+              Ahorro estimado: {f.ahorro_estimado_eur_mes.toFixed(0)} €/mes
+            </p>
+          )}
+        </>
       )}
     </div>
   );
+}
+
+function _summaryText(f: Record<string, any>) {
+  const c = f.contrato ?? {};
+  const e = f.energia ?? {};
+  const t = f.totales ?? {};
+  const p = f.periodo ?? {};
+  const pot = f.potencia ?? {};
+
+  const parts: string[] = [
+    `Factura de ${c.comercializadora ?? "comercializadora desconocida"}`,
+    `con tarifa ${c.modalidad ?? "desconocida"}`,
+    p.fecha_inicio && p.fecha_fin
+      ? `para el período del ${p.fecha_inicio} al ${p.fecha_fin}`
+      : "",
+    e.kwh_total != null
+      ? `Has consumido ${e.kwh_total.toFixed(0)} kWh`
+      : "",
+    pot.potencia_contratada_kw != null
+      ? `con una potencia contratada de ${pot.potencia_contratada_kw} kW`
+      : "",
+    t.total_factura_eur != null
+      ? `El importe total asciende a ${t.total_factura_eur.toFixed(2)} €`
+      : "",
+    c.modalidad === "PVPC"
+      ? "Al estar en PVPC, tu precio varía cada hora según el mercado."
+      : "Revisa las recomendaciones de la auditoría para posibles ahorros.",
+  ].filter(Boolean);
+
+  return parts.join(". ") + ".";
 }
 
 export function ResultsPanel({ data }: Props) {
@@ -78,6 +118,10 @@ export function ResultsPanel({ data }: Props) {
         <InfoRow label="Potencia" value={`${f.potencia?.potencia_contratada_kw ?? "—"} kW`} />
         <InfoRow label="Total" value={`${totales.total_factura_eur?.toFixed(2) ?? "—"} €`} />
       </div>
+
+      <p style={{ fontSize: 13, color: "#444", lineHeight: 1.5, marginBottom: 16, background: "#f0f7ff", padding: "12px 16px", borderRadius: 8, borderLeft: "3px solid #2563eb" }}>
+        {_summaryText(f)}
+      </p>
 
       <h3 style={{ margin: "0 0 8px", fontSize: 16 }}>
         Auditoría ({data.findings.length} hallazgos)
