@@ -29,11 +29,14 @@ _stdout = logging.StreamHandler(sys.stdout)
 _stdout.setFormatter(logging.Formatter(_FORMAT))
 _logger.addHandler(_stdout)
 
-# file handler — persists across container restarts
-_LOG_DIR.mkdir(parents=True, exist_ok=True)
-_file = logging.FileHandler(str(_LOG_FILE), encoding="utf-8")
-_file.setFormatter(logging.Formatter(_FORMAT))
-_logger.addHandler(_file)
+# file handler — persists across container restarts; no-op if /app/logs unavailable
+try:
+    _LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _file = logging.FileHandler(str(_LOG_FILE), encoding="utf-8")
+    _file.setFormatter(logging.Formatter(_FORMAT))
+    _logger.addHandler(_file)
+except OSError:
+    pass
 
 
 logger = _logger
