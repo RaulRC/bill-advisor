@@ -20,7 +20,7 @@ export interface Finding {
   code: string;
   severity: "critical" | "warning" | "info";
   titulo: string;
-  descripcion: string;
+  detalle: string;
   ahorro_estimado_eur_mes: number | null;
 }
 

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { AnalyzeResponse, Finding } from "./api";
 
 interface Props {
@@ -18,23 +17,18 @@ const SEVERITY_LABELS: Record<string, string> = {
 };
 
 function FindingCard({ f }: { f: Finding }) {
-  const [open, setOpen] = useState(false);
-
   return (
     <div
-      onClick={() => setOpen((o) => !o)}
       style={{
         borderLeft: `4px solid ${SEVERITY_COLORS[f.severity]}`,
         padding: "12px 16px",
         marginBottom: 8,
         background: "#f9fafb",
         borderRadius: "0 8px 8px 0",
-        cursor: "pointer",
-        userSelect: "none",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <strong style={{ fontSize: 14 }}>{open ? "▼" : "▶"} {f.titulo}</strong>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        <strong style={{ fontSize: 14 }}>{f.titulo}</strong>
         <span
           style={{
             fontSize: 11,
@@ -45,17 +39,13 @@ function FindingCard({ f }: { f: Finding }) {
           {SEVERITY_LABELS[f.severity]}
         </span>
       </div>
-      {open && (
-        <>
-          <p style={{ margin: "8px 0 0", fontSize: 13, color: "#555", lineHeight: 1.4 }}>
-            {f.descripcion}
-          </p>
-          {f.ahorro_estimado_eur_mes != null && (
-            <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, color: "#059669" }}>
-              Ahorro estimado: {f.ahorro_estimado_eur_mes.toFixed(0)} €/mes
-            </p>
-          )}
-        </>
+      <p style={{ margin: 0, fontSize: 13, color: "#555", lineHeight: 1.4 }}>
+        {f.detalle}
+      </p>
+      {f.ahorro_estimado_eur_mes != null && (
+        <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, color: "#059669" }}>
+          Ahorro estimado: {f.ahorro_estimado_eur_mes.toFixed(0)} €/mes
+        </p>
       )}
     </div>
   );
