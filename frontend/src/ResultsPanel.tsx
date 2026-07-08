@@ -1,14 +1,18 @@
 import { useState } from "react";
+
 import type { AnalyzeResponse, Finding } from "./api";
+import { Badge } from "./components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { Separator } from "./components/ui/separator";
 
 interface Props {
   data: AnalyzeResponse;
 }
 
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: "#dc2626",
-  warning: "#d97706",
-  info: "#2563eb",
+const SEVERITY_VARIANT: Record<string, "destructive" | "secondary" | "default"> = {
+  critical: "destructive",
+  warning: "secondary",
+  info: "default",
 };
 
 const SEVERITY_LABELS: Record<string, string> = {
@@ -23,35 +27,22 @@ function FindingCard({ f }: { f: Finding }) {
   return (
     <div
       onClick={() => setOpen((o) => !o)}
-      style={{
-        borderLeft: `4px solid ${SEVERITY_COLORS[f.severity]}`,
-        padding: "12px 16px",
-        marginBottom: 8,
-        background: "#f9fafb",
-        borderRadius: "0 8px 8px 0",
-        cursor: "pointer",
-        userSelect: "none",
-      }}
+      className="border-l-4 cursor-pointer select-none py-3 px-4 rounded-r-lg bg-muted/50 mb-2 transition-colors hover:bg-muted/80"
+      style={{ borderLeftColor: f.severity === "critical" ? "#dc2626" : f.severity === "warning" ? "#d97706" : "#2563eb" }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <strong style={{ fontSize: 14 }}>{open ? "▼" : "▶"} {f.titulo}</strong>
-        <span
-          style={{
-            fontSize: 11,
-            color: SEVERITY_COLORS[f.severity],
-            fontWeight: 600,
-          }}
-        >
+      <div className="flex items-center justify-between">
+        <strong className="text-sm">{open ? "▼" : "▶"} {f.titulo}</strong>
+        <Badge variant={SEVERITY_VARIANT[f.severity]}>
           {SEVERITY_LABELS[f.severity]}
-        </span>
+        </Badge>
       </div>
       {open && (
         <>
-          <p style={{ margin: "8px 0 0", fontSize: 13, color: "#555", lineHeight: 1.4 }}>
+          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
             {f.detalle}
           </p>
           {f.ahorro_estimado_eur_mes != null && (
-            <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, color: "#059669" }}>
+            <p className="text-xs font-semibold text-emerald-600 mt-1.5">
               Ahorro estimado: {f.ahorro_estimado_eur_mes.toFixed(0)} €/mes
             </p>
           )}
@@ -91,6 +82,16 @@ function _summaryText(f: Record<string, any>) {
   return parts.join(". ") + ".";
 }
 
+function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
+  return (
+    <div>
+      <span className="text-muted-foreground text-xs">{label}</span>
+      <br />
+      <span className="font-semibold text-sm">{value ?? "—"}</span>
+    </div>
+  );
+}
+
 export function ResultsPanel({ data }: Props) {
   const f = data.factura as Record<string, any>;
   const contrato = f.contrato ?? {};
@@ -99,46 +100,42 @@ export function ResultsPanel({ data }: Props) {
   const periodo = f.periodo ?? {};
 
   return (
-    <div>
-      <h3 style={{ margin: "0 0 12px", fontSize: 16 }}>Resumen de la factura</h3>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Resumen de la factura</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-4">
+            <InfoRow label="Comercializadora" value={contrato.comercializadora} />
+            <InfoRow label="Modalidad" value={contrato.modalidad} />
+            <InfoRow label="Periodo" value={`${periodo.fecha_inicio} → ${periodo.fecha_fin}`} />
+            <InfoRow label="Consumo" value={`${energia.kwh_total?.toFixed(0) ?? "—"} kWh`} />
+            <InfoRow label="Potencia" value={`${f.potencia?.potencia_contratada_kw ?? "—"} kW`} />
+            <InfoRow label="Total" value={`${totales.total_factura_eur?.toFixed(2) ?? "—"} €`} />
+          </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 8,
-          fontSize: 13,
-          marginBottom: 16,
-        }}
-      >
-        <InfoRow label="Comercializadora" value={contrato.comercializadora} />
-        <InfoRow label="Modalidad" value={contrato.modalidad} />
-        <InfoRow label="Periodo" value={`${periodo.fecha_inicio} → ${periodo.fecha_fin}`} />
-        <InfoRow label="Consumo" value={`${energia.kwh_total?.toFixed(0) ?? "—"} kWh`} />
-        <InfoRow label="Potencia" value={`${f.potencia?.potencia_contratada_kw ?? "—"} kW`} />
-        <InfoRow label="Total" value={`${totales.total_factura_eur?.toFixed(2) ?? "—"} €`} />
-      </div>
+          <div className="bg-primary/5 border-l-4 border-primary rounded-r-lg p-3 text-xs text-muted-foreground leading-relaxed">
+            {_summaryText(f)}
+          </div>
+        </CardContent>
+      </Card>
 
-      <p style={{ fontSize: 13, color: "#444", lineHeight: 1.5, marginBottom: 16, background: "#f0f7ff", padding: "12px 16px", borderRadius: 8, borderLeft: "3px solid #2563eb" }}>
-        {_summaryText(f)}
-      </p>
-
-      <h3 style={{ margin: "0 0 8px", fontSize: 16 }}>
-        Auditoría ({data.findings.length} hallazgos)
-      </h3>
-      {data.findings.map((f) => (
-        <FindingCard key={f.code} f={f} />
-      ))}
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
-  return (
-    <div>
-      <span style={{ color: "#888" }}>{label}</span>
-      <br />
-      <span style={{ fontWeight: 600 }}>{value ?? "—"}</span>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Auditoría ({data.findings.length} hallazgos)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.findings.map((f, i) => (
+            <div key={f.code}>
+              <FindingCard f={f} />
+              {i < data.findings.length - 1 && <Separator className="my-2" />}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }

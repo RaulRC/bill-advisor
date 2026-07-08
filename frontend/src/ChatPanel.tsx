@@ -1,6 +1,10 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { ScrollArea } from "./components/ui/scroll-area";
 
 interface Message {
   role: "user" | "assistant";
@@ -17,7 +21,9 @@ interface Props {
 
 export function ChatPanel({ messages, onSend, loading, collapsed, onToggle }: Props) {
   const [input, setInput] = useState("");
+  const [width, setWidth] = useState(320);
   const listRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -26,150 +32,123 @@ export function ChatPanel({ messages, onSend, loading, collapsed, onToggle }: Pr
       const text = input.trim();
       setInput("");
       await onSend(text);
-      setTimeout(() => {
-        listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-      }, 50);
     },
     [input, loading, onSend],
   );
 
+  useEffect(() => {
+    if (!listRef.current) return;
+    listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [messages]);
+
+  // ── Resize ────────────────────────────────────────────────────────────────
+  const handleMouseDown = useCallback(() => {
+    draggingRef.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return;
+      setWidth(Math.max(280, Math.min(500, window.innerWidth - e.clientX)));
+    };
+    const handleMouseUp = () => {
+      draggingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
   if (collapsed) {
     return (
-      <div style={sidebarStyle}>
-        <button onClick={onToggle} style={toggleBtnStyle} title="Abrir chat">
+      <div className="border-l bg-card flex flex-col items-center pt-4" style={{ width: 48, flexShrink: 0 }}>
+        <Button variant="ghost" size="icon" onClick={onToggle} title="Abrir chat">
           💬
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div style={sidebarStyle}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <strong style={{ fontSize: 14 }}>Chat</strong>
-        <button onClick={onToggle} style={toggleBtnStyle} title="Cerrar chat">
-          ✕
-        </button>
-      </div>
-
+    <div className="border-l bg-card flex flex-col relative" style={{ width, flexShrink: 0 }}>
+      {/* Drag handle */}
       <div
-        ref={listRef}
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          marginBottom: 8,
-        }}
-      >
-        {messages.length === 0 && (
-          <p style={{ fontSize: 13, color: "#888", textAlign: "center", marginTop: 24 }}>
-            Pregunta sobre tu factura o conceptos eléctricos.
-          </p>
-        )}
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            style={{
-              padding: "8px 12px",
-              borderRadius: 12,
-              fontSize: 13,
-              lineHeight: 1.5,
-              maxWidth: "88%",
-              alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-              background: m.role === "user" ? "#2563eb" : "#f3f4f6",
-              color: m.role === "user" ? "#fff" : "#333",
-            }}
-          >
-            {m.role === "assistant" ? (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  p: ({ children }) => <p style={{ margin: "0 0 6px" }}>{children}</p>,
-                  strong: ({ children }) => <strong style={{ color: "#111" }}>{children}</strong>,
-                  code: ({ children }) => (
-                    <code style={{ fontSize: 12, background: "#e5e7eb", padding: "1px 4px", borderRadius: 4 }}>
-                      {children}
-                    </code>
-                  ),
-                  ul: ({ children }) => <ul style={{ margin: "4px 0", paddingLeft: 16 }}>{children}</ul>,
-                  li: ({ children }) => <li style={{ marginBottom: 2 }}>{children}</li>,
-                }}
-              >
-                {m.content}
-              </ReactMarkdown>
-            ) : (
-              m.content
-            )}
-          </div>
-        ))}
-        {loading && (
-          <div
-            style={{
-              padding: "8px 12px",
-              borderRadius: 12,
-              fontSize: 13,
-              alignSelf: "flex-start",
-              background: "#f3f4f6",
-              color: "#888",
-            }}
-          >
-            Pensando…
-          </div>
-        )}
+        onMouseDown={handleMouseDown}
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-10"
+      />
+
+      <div className="flex items-center justify-between p-3 pb-0">
+        <strong className="text-sm">Chat</strong>
+        <Button variant="ghost" size="icon" onClick={onToggle} title="Cerrar chat">
+          ✕
+        </Button>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", gap: 6 }}>
-        <input
+      <ScrollArea className="flex-1 px-3 py-2">
+        <div ref={listRef} className="flex flex-col gap-2">
+          {messages.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center mt-6">
+              Pregunta sobre tu factura o conceptos eléctricos.
+            </p>
+          )}
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`rounded-xl px-3 py-2 text-sm leading-relaxed max-w-[88%] ${
+                m.role === "user"
+                  ? "bg-primary text-primary-foreground self-end"
+                  : "bg-muted self-start"
+              }`}
+            >
+              {m.role === "assistant" ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+                    strong: ({ children }) => <strong>{children}</strong>,
+                    code: ({ children }) => (
+                      <code className="text-xs bg-muted-foreground/20 px-1 py-0.5 rounded">
+                        {children}
+                      </code>
+                    ),
+                    ul: ({ children }) => <ul className="my-1 pl-4">{children}</ul>,
+                    li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                  }}
+                >
+                  {m.content}
+                </ReactMarkdown>
+              ) : (
+                m.content
+              )}
+            </div>
+          ))}
+          {loading && (
+            <div className="rounded-xl px-3 py-2 text-sm bg-muted self-start text-muted-foreground">
+              Pensando…
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      <form onSubmit={handleSubmit} className="flex gap-2 p-3 pt-0">
+        <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Escribe una pregunta…"
           disabled={loading}
-          style={{
-            flex: 1,
-            padding: "8px 12px",
-            borderRadius: 8,
-            border: "1px solid #d1d5db",
-            fontSize: 13,
-            outline: "none",
-          }}
+          className="text-sm"
         />
-        <button
-          type="submit"
-          disabled={loading || !input.trim()}
-          style={{
-            padding: "8px 14px",
-            borderRadius: 8,
-            border: "none",
-            background: loading || !input.trim() ? "#d1d5db" : "#2563eb",
-            color: "#fff",
-            fontSize: 13,
-            cursor: loading || !input.trim() ? "default" : "pointer",
-          }}
-        >
+        <Button type="submit" size="sm" disabled={loading || !input.trim()}>
           Enviar
-        </button>
+        </Button>
       </form>
     </div>
   );
 }
-
-const sidebarStyle: React.CSSProperties = {
-  width: 320,
-  display: "flex",
-  flexDirection: "column",
-  borderLeft: "1px solid #e5e7eb",
-  padding: 16,
-  background: "#fff",
-  flexShrink: 0,
-};
-
-const toggleBtnStyle: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  fontSize: 14,
-  padding: 4,
-  color: "#666",
-};

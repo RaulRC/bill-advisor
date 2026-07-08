@@ -1,5 +1,7 @@
 import { type DragEvent, useRef, useState } from "react";
 
+import { Card, CardContent } from "./components/ui/card";
+
 interface Props {
   onFile: (file: File) => void;
   loading: boolean;
@@ -29,48 +31,38 @@ export function UploadPanel({ onFile, loading }: Props) {
   const onDragLeave = () => setDragging(false);
 
   return (
-    <div
+    <Card
       onDrop={onDrop}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
-      onClick={() => inputRef.current?.click()}
-      style={{
-        border: `2px dashed ${dragging ? "#2563eb" : "#d1d5db"}`,
-        borderRadius: 12,
-        padding: "40px 24px",
-        textAlign: "center",
-        cursor: "pointer",
-        background: dragging ? "#eff6ff" : "#f9fafb",
-        transition: "all 0.15s",
-        opacity: loading ? 0.5 : 1,
-        pointerEvents: loading ? "none" : "auto",
-      }}
+      onClick={() => !loading && inputRef.current?.click()}
+      className={`cursor-pointer transition-all duration-150 ${
+        dragging ? "border-primary bg-blue-50" : ""
+      } ${loading ? "pointer-events-none opacity-50" : "hover:border-primary/50"}`}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".pdf,application/pdf"
-        hidden
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) handleFile(f);
-        }}
-      />
-      <div style={{ fontSize: 32, marginBottom: 8 }}>
-        {loading ? "⏳" : "📄"}
-      </div>
-      {loading ? (
-        <p style={{ margin: 0, color: "#666" }}>Analizando factura…</p>
-      ) : (
-        <>
-          <p style={{ margin: "0 0 4px", fontWeight: 600, color: "#333" }}>
-            Sube tu factura de la luz
-          </p>
-          <p style={{ margin: 0, fontSize: 13, color: "#888" }}>
-            Arrastra un PDF o haz clic para seleccionar
-          </p>
-        </>
-      )}
-    </div>
+      <CardContent className="flex flex-col items-center gap-2 py-10">
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+          }}
+        />
+        <span className="text-3xl">{loading ? "⏳" : "📄"}</span>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Analizando factura…</p>
+        ) : (
+          <>
+            <p className="font-semibold text-sm">Sube tu factura de la luz</p>
+            <p className="text-xs text-muted-foreground">
+              Arrastra un PDF o haz clic para seleccionar
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
