@@ -18,7 +18,7 @@ jobs:
           npm run build
 
       - name: Copy frontend dist to Lightsail
-        uses: appleboy/scp-action@v0
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
