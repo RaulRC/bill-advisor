@@ -4,7 +4,6 @@ import remarkGfm from "remark-gfm";
 
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
-import { ScrollArea } from "./components/ui/scroll-area";
 
 interface Message {
   role: "user" | "assistant";
@@ -91,8 +90,7 @@ export function ChatPanel({ messages, onSend, loading, collapsed, onToggle }: Pr
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 px-3 py-2">
-        <div ref={listRef} className="flex flex-col gap-2">
+      <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
           {messages.length === 0 && (
             <p className="text-xs text-muted-foreground text-center mt-6">
               Pregunta sobre tu factura o conceptos eléctricos.
@@ -135,7 +133,6 @@ export function ChatPanel({ messages, onSend, loading, collapsed, onToggle }: Pr
             </div>
           )}
         </div>
-      </ScrollArea>
 
       <form onSubmit={handleSubmit} className="flex gap-2 p-3 pt-0">
         <Input
