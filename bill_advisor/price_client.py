@@ -5,11 +5,14 @@ from datetime import date, datetime
 
 import httpx
 
+from bill_advisor._cache import ttl_cache
+
 ESIOS_INDICATOR_OMIE = 600
 GEO_ESPAÑA = 3
 BASE_URL = "https://api.esios.ree.es"
 
 
+@ttl_cache(3600)
 def fetch_omie_prices(
     start_date: date,
     end_date: date,
