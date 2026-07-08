@@ -33,11 +33,9 @@ export function App() {
   useEffect(() => {
     loadPrices();
 
-    // Refresh when user returns to the tab
     const onVisible = () => { if (!document.hidden) loadPrices(); };
     document.addEventListener("visibilitychange", onVisible);
 
-    // One-time refresh at 20:30 for tomorrow's PVPC prices
     const now = new Date();
     const target = new Date();
     target.setHours(20, 30, 0, 0);
@@ -99,33 +97,29 @@ export function App() {
   );
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+    <div className="flex h-screen overflow-hidden">
       {/* Main panel */}
-      <div style={{ flex: 1, overflowY: "auto", padding: 32 }}>
-        <h1 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 700 }}>
-          Bill Advisor
-        </h1>
-        <p style={{ margin: "0 0 24px", fontSize: 14, color: "#888" }}>
-          Analiza tus facturas de electricidad españolas y compáralas con el PVPC.
-        </p>
+      <div className="flex-1 overflow-y-auto p-8 space-y-6 max-w-4xl mx-auto">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Tu factura de luz</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Analiza tus facturas de electricidad españolas y compáralas con el PVPC.
+          </p>
+        </div>
 
         <PriceChart data={prices} error={pricesError} />
 
-        <div style={{ marginTop: 24 }}>
-          <UploadPanel onFile={handleFile} loading={analyzing} />
-        </div>
+        <UploadPanel onFile={handleFile} loading={analyzing} />
 
         {analysisError && (
-          <p style={{ color: "#b91c1c", fontSize: 14, marginTop: 12 }}>
-            {analysisError}
-          </p>
+          <p className="text-sm text-destructive">{analysisError}</p>
         )}
 
-        {analysis && (
-          <div style={{ marginTop: 24 }}>
-            <ResultsPanel data={analysis} />
-          </div>
-        )}
+        {analysis && <ResultsPanel data={analysis} />}
+
+        <footer className="text-xs text-muted-foreground text-center pt-4 pb-2 border-t">
+          <a href="https://raulrc.com" target="_blank" rel="noopener noreferrer" className="hover:underline">raulrc.com</a>
+        </footer>
       </div>
 
       {/* Chat sidebar */}
