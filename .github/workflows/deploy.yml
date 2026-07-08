@@ -9,6 +9,23 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy frontend dist to Lightsail
+        uses: appleboy/scp-action@v0
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          source: "frontend/dist"
+          target: "~/bill-advisor-dist"
+
       - name: Deploy to Lightsail
         uses: appleboy/ssh-action@v1
         with:
@@ -19,6 +36,8 @@ jobs:
           script: |
             rm -rf ~/bill-advisor
             git clone git@github.com:RaulRC/bill-advisor.git ~/bill-advisor
+            rm -rf ~/bill-advisor/frontend/dist
+            cp -r ~/bill-advisor-dist/frontend/dist ~/bill-advisor/frontend/dist
             cd ~/bill-advisor
             docker build -t bill-advisor .
             docker stop bill-advisor || true
