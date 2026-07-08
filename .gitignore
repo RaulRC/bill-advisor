@@ -21,3 +21,5 @@ docs/deployment-plan.md
 # Frontend build artifacts
 frontend/dist/
 frontend/node_modules/
+frontend/src/**/*.js
+frontend/tsconfig.tsbuildinfo
